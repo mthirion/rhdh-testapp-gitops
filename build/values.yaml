@@ -1,0 +1,21 @@
+app:
+  name: rhdh-testapp
+  namespace: rhdh-testapp-dev
+  cluster: .apps.ocp4.mthirion.eu
+
+git:
+  branch: master
+  repo: https://github.com/mthirion/rhdh-testapp.git
+  org: mthirion
+  name: rhdh-testapp
+  host: github.com
+  token: ''
+  webhookSecret: ''
+
+
+image:
+  registry: Openshift
+  organization: 
+  host: default-route-openshift-image-registry.apps.ocp4.mthirion.eu
+  name: rhdh-testapp
+  tag: latest

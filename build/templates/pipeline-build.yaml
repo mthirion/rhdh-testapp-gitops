@@ -1,0 +1,70 @@
+apiVersion: tekton.dev/v1
+kind: Pipeline
+metadata:
+  annotations:
+    kubectl.kubernetes.io/last-applied-configuration: |
+      {"apiVersion":"tekton.dev/v1beta1","kind":"Pipeline","metadata":{"annotations":{},"labels":{"backstage.io/kubernetes-id":"testapp","type":"pipeline"},"name":"testapp-build","namespace":"rhtsc-pipeline"},"spec":{"params":[{"default":"https://github.com/mthirion/rhdh-testapp","description":"source repo that contains the application code","name":"source-repo","type":"string"},{"default":"master","description":"source branch to build from","name":"source-branch","type":"string"},{"default":"testapp","description":"reference of the image that will get created","name":"output-image","type":"string"},{"default":"rhdh-testapp","description":"Component id","name":"component-id","type":"string"}],"tasks":[{"name":"git-clone","params":[{"name":"url","value":"$(params.source-repo)"},{"name":"revision","value":"$(params.source-branch)"}],"taskRef":{"kind":"ClusterTask","name":"git-clone"},"workspaces":[{"name":"output","workspace":"source-folder"}]},{"name":"package","runAfter":["git-clone"],"taskRef":{"kind":"ClusterTask","name":"maven"},"workspaces":[{"name":"source","workspace":"source-folder"},{"name":"maven-settings","workspace":"maven-settings"}]},{"name":"build-and-push","params":[{"name":"IMAGE","value":"$(params.output-image)"}],"runAfter":["package"],"taskRef":{"kind":"Task","name":"kaniko"},"workspaces":[{"name":"source","workspace":"source-folder"},{"name":"dockerconfig","workspace":"docker-config"}]}],"workspaces":[{"name":"source-folder"},{"name":"maven-settings"},{"name":"docker-config"}]}}
+  labels:
+    backstage.io/kubernetes-id: rhdh-testapp
+    type: pipeline
+  name: {{ .Values.app.name }}-build
+spec:
+  params:
+  - default: {{ .Values.git.repo }}
+    description: source repo that contains the application code
+    name: source-repo
+    type: string
+  - default: master
+    description: source branch to build from
+    name: source-branch
+    type: string
+  - default: default-route-openshift-image-registry.apps.ocp4.mthirion.eu/{{ .Values.app.name }}-dev/{{ .Values.app.name }}:latest
+    description: reference of the image that will get created
+    name: output-image
+    type: string
+  - default: {{ .Values.app.name }}
+    description: Component id
+    name: component-id
+    type: string
+  tasks:
+  - name: git-clone
+    params:
+    - name: url
+      value: $(params.source-repo)
+    - name: revision
+      value: $(params.source-branch)
+    taskRef:
+      kind: ClusterTask
+      name: git-clone
+    workspaces:
+    - name: output
+      workspace: source-folder
+  - name: package
+    runAfter:
+    - git-clone
+    taskRef:
+      kind: ClusterTask
+      name: maven
+    workspaces:
+    - name: source
+      workspace: source-folder
+    - name: maven-settings
+      workspace: maven-settings
+  - name: build-and-push
+    params:
+    - name: IMAGE
+      value: $(params.output-image)
+    runAfter:
+    - package
+    taskRef:
+      kind: Task
+      name: kaniko
+    workspaces:
+    - name: source
+      workspace: source-folder
+    - name: dockerconfig
+      workspace: docker-config
+  workspaces:
+  - name: source-folder
+  - name: maven-settings
+  - name: docker-config
